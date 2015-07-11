@@ -1,0 +1,4 @@
+#https://github.com/nginx/nginx***nginx -v
+#https://github.com/fail2ban/fail2ban***fail2ban-client -V | head -1
+#http://sourceforge.net/projects/logwatch***logwatch --version
+#http://sourceforge.net/projects/rkhunter***rkhunter -V | head -1

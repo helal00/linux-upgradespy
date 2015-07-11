@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+#Copyright (C) 2015  Helal Uddin <helal00 at gmail.com>
+#This program is free software: you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation, either version 3 of the License, or
+#(at your option) any later version.
+#
+#This program is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+#
+#You should have received a copy of the GNU General Public License
+#along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+_srcsbinpath=$(dirname $(readlink -f $0))
+_srchomepath=$(dirname $_srcsbinpath) 
+
+function confirmtogo(){
+	local _conit _valtogo _msg
+	_msg=$1
+	_valtogo=$2
+	if [ -z "$_msg" ] ; then
+		exit 1
+	fi
+	read -p "$_msg" _conit
+	_conit=${_conit,,}
+	if [ -z "$_valtogo" ] ; then
+		_valtogo="yes"
+	else
+		_valtogo=${_valtogo,,}
+	fi
+	if [ "$_valtogo" = "notempty" ] ; then
+		if [ ! -z "$_conit" ] ; then
+			echo "$_conit"
+			return 0
+		else
+			return 1
+		fi
+	elif [ "$_valtogo" = "pathexist" ] ; then
+		if [ -e "$_conit" ] ; then
+			echo "$_conit"
+			return 0
+		else
+			return 1
+		fi
+	elif [ ! -z "$_conit" ] && [ "$_conit" = "$_valtogo" ] ; then
+		return 0
+	fi
+	return 1
+}
+
+_hour=$1
+_defauthour=0
+if [ -z "$_min" ] ; then
+read -p "$_srcsbinpath/upgradespy will run on what hour of the day? Type hours between [0-23] or only press enter to take default at 15 minute past $_defauthour hour(midnight): " _hour
+fi
+if [ -n "$_hour" ] && echo "$_hour" | grep -q "^-\?[0-9]*$" && [ "$_hour" -ge 0 ] && [ "$_hour" -le 59 ] ; then
+	_interval="$_hour"
+else
+	_interval=$_defauthour
+fi
+
+_mail=$(command -v mail)
+if [ -z "_mail" ] ; then
+	echo "mail command not found in your system...aborting" 1>&2
+	exit 1
+fi
+_mymailto="$MAILTO"
+if [ -z "$_mymailto" ] ; then
+	echo "Your \$MAILTO system variable is empty. Either your system is not configured for sending mail or there is a misconfugarion." 1>&2
+	if confirmtogo "Do you want to still add $_srcsbinpath/upgradespy as cron job with cusrom a mailto:(yes/enter only to quit)" ; then
+		if ! _mymailto=$(confirmtogo "Please type your mailto address: " "notempty") ; then
+			echo "No \$MAILTO value recieved...aborting"
+			exit 1
+		fi
+	else
+		exit 1
+	fi
+fi
+
+#write out current crontab
+crontab -l > $_srcsbinpath/mycron
+#echo new cron into cron file
+if ! grep -q "$_srcsbinpath/upgradespy" $_srcsbinpath/mycron ; then
+
+	echo "15 $_interval * * * $_srcsbinpath/upgradespy 2>&1 | $_mail -s \"System Udgrade status report: ($(hostname -f))\" $_mymailto" >> $_srcsbinpath/mycron
+	#install new cron file
+	crontab $_srcsbinpath/mycron
+	echo "$_srcsbinpath/upgradespy added to crontab successfully for at 15 minute past $((_interval+1)) hour!!"
+else
+	echo "	WARNING: $_srcsbinpath/upgradespy already exist in crontab, no changes has been made!! To apply changes, please remove the existing job first with '$_srcsbinpath/delupcron' command." 1>&2	
+fi
+rm $_srcsbinpath/mycron
+
