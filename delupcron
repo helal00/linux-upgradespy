@@ -15,6 +15,7 @@
 
 _srcsbinpath=$(dirname $(readlink -f $0))
 
+
 #write out current crontab
 crontab -l > $_srcsbinpath/mycron
 if grep -q "$_srcsbinpath/upgradespy" $_srcsbinpath/mycron ; then
