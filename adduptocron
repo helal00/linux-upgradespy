@@ -47,9 +47,12 @@ if [ -z "_mail" ] ; then
 	exit 1
 fi
 _mymailto="$MAILTO"
-if [ -z "$_mymailto" ] ; then
+#write out current crontab
+crontab -l > $_srcsbinpath/mycron
+
+if ! grep -q "MAILTO=" $_srcsbinpath/mycron && [ -z "$_mymailto" ] ; then
 	echo "Your \$MAILTO system variable is empty. Either your system is not configured for sending mail or there is a misconfugarion." 1>&2
-	if confirmtogo "Do you want to still add $_srcsbinpath/upgradespy as cron job with cusrom a mailto:(yes/enter only to quit)" ; then
+	if confirmtogo "Do you want to still add $_srcsbinpath/upgradespy as cron job with a custom mailto:(yes/enter only to quit)" ; then
 		if ! _mymailto=$(confirmtogo "Please type your mailto address: " "notempty") ; then
 			echo "No \$MAILTO value recieved...aborting"
 			exit 1
@@ -57,10 +60,15 @@ if [ -z "$_mymailto" ] ; then
 	else
 		exit 1
 	fi
+else
+	_mailline=$(grep "MAILTO=" $_srcsbinpath/mycron)
+	if [ ! -z "$_mailline" ] ; then
+		_mymailto="${_mailline//MAILTO=}"
+	fi
+	 
 fi
 
-#write out current crontab
-crontab -l > $_srcsbinpath/mycron
+
 #echo new cron into cron file
 if ! grep -q "$_srcsbinpath/upgradespy" $_srcsbinpath/mycron ; then
 
